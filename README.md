@@ -14,6 +14,8 @@
 
 [5. MVC 프레임워크 만들기](#5_mvc-프레임워크-만들기)
 
+[6. 스프링 MVC_구조 이해](#6_스프링-mvc_구조-이해)
+
 ---
 
 ### **1_소개**
@@ -865,3 +867,56 @@ username=kim
 	-	애노테이션을 지원하는 어댑터를 추가하면 됨
 
 -	지금까지 작성한 코드는 스프링 MVC 프레임워크의 핵심 코드의 축약버전이며 구조도 비슷함
+
+
+### **6_스프링 MVC_구조 이해**
+
+#### 6.1 스프링 MVC 전체 구조
+
+-	직접 만든 프레임워크와 스프링 MVC 비교
+
+	-	FrontController > DispatcherServlet
+	-	handlerMappingMap > HandlerMapping
+	-	MyHandlerAdaptor > HandlerAdaptor
+	-	ModelView > ModelAndView
+	-	viewResovler > ViewResolver
+	-	MyView > View
+
+-	DispatcherServlet 구조 살펴보기
+
+	-	스프링 MVC도 프론트 컨트롤러 패턴이 구현되어 있음
+	-	스프링 MVC의 프론트 컨트롤러가 DispatcherServlet 임
+	-	스프링의 핵심
+
+-	Dispatcher 서블릿 등록
+
+	-	Dispatcher 도 부모 클래스에서 HttpServlet을 상속 받아서 사용하고, 서블릿으로 동작함
+	-	부트는 DispatcherServlet을 서블릿으로 자동으로 등록하면서 모든 경우에 대해서 매핑함
+
+-	요청 흐름
+
+	-	서블릿이 호출되면 HttpServlet이 제공하는 service() 가 호출됨
+	-	스프링 MVC는 DispatcherServlet의 부모인 FrameworkServlet에서 service()를 오버라이드 했음
+	-	FrameworkServlet.service() 를 시작으로 여러 메서드가 호출되면서 DispatcherServlet.doDispatch() 가 호출됨
+
+-	동작 순서
+
+	-	핸들러 조회 : 핸들러 매핑을 통해 요청 URL에 매핑된 핸들러(컨트롤러)를 조회함
+	-	핸들러 어댑터 조회 : 핸들러를 실행할 수 있는 핸들러 어댑터를 조회
+	-	핸들러 어댑터 실행 : 핸들러 어댑터 실행
+	-	핸들러 실행 : 핸들러 어댑터가 실제 핸들러를 실행
+	-	ModelAndView 반환 : 핸들러 어댑터는 핸들러가 반환하는 정보를 ModelAndView로 변환해서 반환
+	-	viewResolver 호출 : 뷰 리졸버를 찾고 실행
+	-	View 반환 : 뷰 리졸버는 뷰의 논리 이름을 물리이름으로 바꾸고, 렌더링 역할을 담당하는 뷰 객체를 반환
+	-	뷰 렌더링 : 뷰를 통해서 뷰를 렌더링함
+
+-	인터페이스 살펴보기
+
+	-	스프링 MVC의 가장 큰 강점은 DispatcherServlet 코드의 변경 없이, 원하는 기능을 변경하거나 확장할 수 있음 (확장가능하게 인터페이스로 제공)
+	-	이 인터페이스들만 구현해서 DispatcherServlet에 등록하면 커스텀된 컨트롤러를 만들 수 있음
+
+-	정리
+
+	-	스프링 MVC는 분량이 많고 복잡해서 내부 구조를 모두 파악하는 것은 쉽지 않음
+	-	해당 기능을 직접 확장하거나 나만의 컨트롤러를 만드는 일은 거의 없음 (대부분의 기능이 이미 구현되어 있음)
+	-	하지만, 핵심 동작방식을 알아야 향후 문제가 발생했을 때 어떤 부분에서 문제가 발생했는 지 쉽게 파악하고, 문제를 해결할 수 있음
