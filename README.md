@@ -920,3 +920,179 @@ username=kim
 	-	스프링 MVC는 분량이 많고 복잡해서 내부 구조를 모두 파악하는 것은 쉽지 않음
 	-	해당 기능을 직접 확장하거나 나만의 컨트롤러를 만드는 일은 거의 없음 (대부분의 기능이 이미 구현되어 있음)
 	-	하지만, 핵심 동작방식을 알아야 향후 문제가 발생했을 때 어떤 부분에서 문제가 발생했는 지 쉽게 파악하고, 문제를 해결할 수 있음
+
+
+
+
+#### 6.2 핸들러 매핑과 핸들러 어댑터
+
+-	핸들러 매핑과 어댑터가 어떤 것들이 어떻게 사용되는 지 알아본다.
+
+-	과거 컨트롤러 : Controller 인터페이스 (이 컨트롤러가 호출되려면 다음 2 가지가 필요함)
+
+	-	HandlerMapping
+
+		-	핸들러 매핑에서 이 컨트롤러를 찾을 수 있어야 한다.
+		-	ex_ 스프링 빈의 이름으로 핸들러를 찾을 수 있는 핸들러 매핑이 필요
+
+	-	HandlerAdaptor
+
+		-	핸들러 매핑을 통해서 찾은 핸들러를 실행할 수 있는 핸들러 어댑터가 필요하다.
+		-	ex_ Controller 인터페이스를 실행할 수 있는 핸들러 어댑터를 찾고 실행해야 한다.
+
+-	스프링 부트가 자동으로 등록하는 핸들러 매핑과 핸들러 어댑터 (스프링은 이미 필요한 핸들러와 핸들러 어댑터를 대부분 구현했음)
+
+	-	HandlerMapping (일부 생략)
+
+		-	RequestMappingHandlerMapping : 애노테이션 기반의 컨트롤러인 @RequestMapping 에서 사용
+		-	BeanNameUrlHandlerMapping : 스프링 빈의 이름으로 핸들러를 찾는다.
+
+	-	HandlerAdaptor (일부 생략)
+
+		-	RequestMappingHandlerAdaptor : 애노네이션 기반의 컨트롤러인 @RequestMapping 에서 사용
+		-	HttpRequestHandlerAdaptor : HttpRequestHandler 처리
+		-	SimpleControllerHandlerAdaptor : Controller 인터페이스(애노테이션 X, 과거에 사용 처리)
+
+-	순서
+
+	-	1) 핸들러 매핑으로 핸들러 조회
+
+		-	HandlerMapping을 순서대로 실행해서, 핸들러를 찾는다.
+		-	이 경우 빈 이름으로 핸들러를 찾아야하기 때문에 이름 그대로 빈 이름으로 핸들러를 찾아주는 BeanNameUrlHandlerMapping 이 실행에 성공하고 핸들러인 OldController를 반환한다.
+
+	-	2) 핸들러 어댑터 조회
+
+		-	HandlerAdaptor의 supports()를 순서대로 호출한다.
+		-	SimpleControllerHandlerAdaptor가 Controller 인터페이스를 지원하므로 대상이 된다.
+
+	-	3) 핸들러 어댑터 실행
+
+		-	디스패처 서블릿이 조회한 SimpleControllerHandlerAdaptor를 실행하면서 핸들러 정보도 함께 넘겨줌
+		-	SimpleControllerHandlerAdaptor는 핸들러인 OldController를 내부에서 실행하고, 그 결과를 반환
+
+-	HttpRequestHandler : 서블릿과 가장 유사한 형태의 핸들러
+
+-	순서
+
+	-	1) 핸들러 매핑으로 핸들러 조회
+
+		-	HandlerMapping을 순서대로 실행해서 핸들러를 찾는다.
+		-	빈이름으로 핸들러를 찾아야 하기 때문에 BeanNameUrlHandlerMapping이 실행에 성공하고 핸들러인 MyHttpRequestHandler를 반환
+
+	-	2) 핸들러 어댑터 조회
+
+		-	HandlerAdaptor 의 supports() 를 순서대로 호출
+		-	HttpRequestHandlerAdaptor가 HttpRequestHandler 인터페이스를 지원하므로 대상이 됨
+
+	-	3) 핸들러 어댑터 실행
+
+		-	디스패처 서블릿이 조회한 HttpRequestHandlerAdaptor를 실행하면서 핸들러 정보도 함께 넘겨줌
+		-	HttpRequestHandlerAdaptor는 핸들러인 MyHttpRequestHandler를 내부에서 실행하고, 그 결과를 반환
+
+-	@RequestMapping
+
+	-	가장 우선순위가 높은 핸들러 매핑과 핸들러 어댑터는
+
+		-	RequestMappingHandlerMapping
+		-	RequestMappingAdaptor
+
+	-	@RequestMapping의 앞글자를 따서 만들 이름이며 스프링에서 주로 사용하는 애노테이션 기반의 컨트롤러를 지원하는 매핑과 어댑터임. (실무에서는 99.9 이 방식의 컨트롤러를 사용함)
+
+#### 6.3 뷰 리졸버
+
+-	뷰 리졸버 : InternalResourceViewResolver
+
+	-	스프링 부트는 InternalResourceViewResolver 라는 뷰리졸버를 자동으로 등록하는데, 이때 application.properties에 등록한 spring.mvc.view.prefix, spring.mvc.view.suffix 설정 정보를 사용해서 등록함
+
+-	스프링 부트가 자동 등록하는 뷰 리졸버 (일부 생략)
+
+	-	BeanNameViewResolver : 빈 이름으로 뷰를 찾아서 반환(ex_엑셀 파일생성 기능에 사용)
+	-	InternalResourceViewResolver : JSP 를 처리할 수 있는 뷰를 반환
+
+-	순서
+
+	-	1) 핸들러 어댑터 호출
+
+		-	핸들러 어댑터를 통해 new-form 이라는 논리 뷰 이름 획득
+
+	-	2) ViewResolver 호출
+
+		-	new-form 이라는 뷰 이름으로 viewResolver를 순서대로 호출
+		-	BeanNameViewResolver는 new-form 이라는 이름의 스프링 빈으로 등록된 뷰를 찾아야하는 데 없다
+		-	InternalResourceViewResolver 가 호출됨
+
+	-	3) InternalResourceViewResolver
+
+		-	이 뷰 리졸버는 InternalReosuceView 를 반환
+
+	-	4) 뷰_InternalReosurceView
+
+		-	InternalResoucreView는 JSP처럼 forward()를 호출해서 처리할 수 있는 경우에 사용한다.
+
+	-	5) view.render()
+
+		-	view.render() 가 호출되고 InternalResourceView는 forward()를 사용해서 JSP를 실행함
+
+-	참고
+
+	-	InternalResourceViewResolver는 만약 JSTL 라이브러리가 있으면 InternalResourceView 를 상속받은 JstlView 를 반환한다. (JSTL 태그 사용 시 약간의 부가기능 추가됨)
+
+	-	다른 뷰는 실제 뷰를 렌더링하지만, JSP의 경우 forward()를 통해서 해당 JSP로 이동해야 렌더링이 된다. JSP를 제외한 나머지 뷰 템플릿은 forward() 과정 없이 바로 렌더링 됨
+
+	-	Thymeleaf 뷰 템플릿을 사용하면 ThymeleafViewResolver를 등록해야 함. 최근에는 라이브러리만 추가하면 부트가 모두 자동화해줌
+
+#### 6.4 스프링 MVC - 시작하기
+
+-	스프링이 제공하는 컨트롤러는 애노테이션 기반으로 동작해서 매우 유연하고 실용적임
+
+-	@RequestMapping
+
+	-	스프링은 애노테이션을 활용한 매우 유연하고, 실용적인 컨트롤러를 만들었는데 이것이 @RequestMapping
+
+	-	RequestMappingHandlerMapping
+
+	-	RequestMappingHandlerAdaptor
+
+	-	스프링에서 주로 사용하는 애노테이션 기반의 컨트롤러를 지원하는 핸들러 매핑과 어댑터임
+
+-	@Controller
+
+	-	스프링이 자동으로 스프링 빈으로 등록한다 (내부에 @Component 가 있어 컴포넌트 스캔의 대상이 됨)
+	-	스프링 MVC에서 애노테이션 기반 컨트롤러로 인식이 됨 (RequestMappingHadlerMapping에서 꺼낼 수 있는 대상이 됨)
+	-	다른 방식으로 스프링 빈 등록이 가능하지만 이 어노테이션이 제일 깔끔함
+
+-	@RequqeatMapping
+
+	-	요청 정보를 매핑
+	-	해당 URL이 호출되면 이 메서드가 호출됨
+	-	애노테이션 기반 동작하기 때문에, 메서드 이름은 임의로 지으면 됨
+
+-	ModelAndView : 모델과 뷰 정볼르 담아서 반환하면 됨
+
+#### 6.5 스프링 MVC - 컨트롤러 통합
+
+-	@RequestMapping 을 보면 메서드 단위에 적용된 것을 볼 수 있음.
+
+	-	컨트롤러 클래스를 유연하게 하나로 통합할 수 있음
+
+#### 6.6 스프링 MVC - 실용적인 방식
+
+-	v2 에서 ModelAndView를 직접 생성하고 있다. 스프링 MVC는 수 많은 편의 기능을 제공함
+
+-	Model 파라미터
+
+	-	Model을 파라미터로 받을 수 있다.
+
+-	ViewName 직접 반환
+
+	-	뷰의 논리 이름을 반환할 수 있음
+
+-	@RequestParam 사용
+
+	-	스프링은 HTTP 요청 파라미터를 @RequestParam 으로 받을 수 있음
+	-	request.getParameter("~") 와 거의 같다고 생각하면 됨
+	-	GET 쿼리파라미터, POST Form 방식 모두 지원
+
+-	@RequestMapping > @GetMapping, @PostMapping
+
+	-	get,post,put,delete,patch 모두 가능
